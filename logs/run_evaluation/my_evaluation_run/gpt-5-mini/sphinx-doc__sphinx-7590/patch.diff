@@ -1,0 +1,28 @@
+diff --git a/sphinx/domains/cpp.py b/sphinx/domains/cpp.py
+index fe52d881d..94ff8193f 100644
+--- a/sphinx/domains/cpp.py
++++ b/sphinx/domains/cpp.py
+@@ -4658,16 +4658,23 @@ class DefinitionParser(BaseParser):
+             return ASTBooleanLiteral(True)
+         if self.skip_word('false'):
+             return ASTBooleanLiteral(False)
++        # permissive UDL matcher: ident-like, possibly ::-qualified (e.g., q_J or my::udl)
++        udl_re = re.compile(r'(?:[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)')
+         for regex in [float_literal_re, binary_literal_re, hex_literal_re,
+                       integer_literal_re, octal_literal_re]:
+             pos = self.pos
+             if self.match(regex):
+                 while self.current_char in 'uUlLfF':
+                     self.pos += 1
++                # consume an optional user-defined-literal suffix (if present)
++                self.match(udl_re)
+                 return ASTNumberLiteral(self.definition[pos:self.pos])
+ 
+         string = self._parse_string()
+         if string is not None:
++            # after a string literal a UDL suffix may follow, consume it if present
++            if self.match(udl_re):
++                string = string + self.last_match.group()
+             return ASTStringLiteral(string)
+ 
+         # character-literal

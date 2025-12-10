@@ -1,0 +1,26 @@
+diff --git a/sphinx/ext/autodoc/mock.py b/sphinx/ext/autodoc/mock.py
+index b562f47fd..0c7aa7935 100644
+--- a/sphinx/ext/autodoc/mock.py
++++ b/sphinx/ext/autodoc/mock.py
+@@ -34,7 +34,15 @@ class _MockObject:
+             superclass = args[1][-1].__class__
+             if superclass is cls:
+                 # subclassing MockObject
+-                return _make_subclass(args[0], superclass.__display_name__,
++                # superclass.__display_name__ may include the class name (e.g.
++                # 'torch.nn.Module'), but __module__ should be only the module
++                # (e.g. 'torch.nn'). Extract the module part if present.
++                display = getattr(superclass, '__display_name__', '')
++                if display and '.' in display:
++                    module = display.rsplit('.', 1)[0]
++                else:
++                    module = display
++                return _make_subclass(args[0], module,
+                                       superclass=superclass, attributes=args[2])
+ 
+         return super().__new__(cls)
+@@ -185,3 +193,4 @@ def undecorate(subject: _MockObject) -> Any:
+         return subject.__sphinx_decorator_args__[0]
+     else:
+         return subject
++

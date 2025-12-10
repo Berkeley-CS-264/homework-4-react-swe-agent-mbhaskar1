@@ -1,0 +1,28 @@
+diff --git a/sklearn/compose/_column_transformer.py b/sklearn/compose/_column_transformer.py
+index 4eddd12b1..617799d65 100644
+--- a/sklearn/compose/_column_transformer.py
++++ b/sklearn/compose/_column_transformer.py
+@@ -303,6 +303,18 @@ class ColumnTransformer(TransformerMixin, _BaseComposition):
+         for trans in transformers:
+             _safe_set_output(trans, transform=transform)
+ 
++        # If remainder is an estimator (and not the special 'passthrough' or
++        # 'drop' strings), ensure its output config is also set. This covers
++        # calling set_output before fit, where the remainder estimator is not
++        # part of self.transformers yet.
++        if getattr(self, "remainder", None) not in {"passthrough", "drop"}:
++            try:
++                _safe_set_output(self.remainder, transform=transform)
++            except Exception:
++                # Be defensive: if remainder is not an estimator or setting output
++                # fails for any reason, ignore to preserve original behavior.
++                pass
++
+         return self
+ 
+     def get_params(self, deep=True):
+@@ -1142,3 +1154,4 @@ class make_column_selector:
+         if self.pattern is not None:
+             cols = cols[cols.str.contains(self.pattern, regex=True)]
+         return cols.tolist()
++

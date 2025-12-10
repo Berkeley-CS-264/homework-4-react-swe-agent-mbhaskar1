@@ -1,0 +1,40 @@
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 7c978c47be..e087bd6af6 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -21,7 +21,7 @@
+ 
+ import warnings
+ 
+-from sympy.core import S, sympify, Expr
++from sympy.core import S, sympify, Expr, Mul
+ from sympy.core.compatibility import is_sequence
+ from sympy.core.containers import Tuple
+ from sympy.simplify import nsimplify, simplify
+@@ -213,6 +213,21 @@ def __add__(self, other):
+         sympy.geometry.point.Point.translate
+ 
+         """
++        # Handle expressions like scalar*Point (e.g., 2*Point(1, 1))
++        # by extracting the Point factor and converting the Mul into a
++        # proper Point instance before proceeding.
++        if isinstance(other, Mul):
++            for factor in other.args:
++                if isinstance(factor, Point):
++                    scalar = other / factor
++                    try:
++                        other = factor * scalar
++                    except Exception:
++                        # If something unexpected happens, fall back to
++                        # the original behavior below which will raise.
++                        pass
++                    break
++
+         try:
+             s, o = Point._normalize_dimension(self, Point(other, evaluate=False))
+         except TypeError:
+@@ -1349,3 +1364,4 @@ def z(self):
+         1
+         """
+         return self.args[2]
++

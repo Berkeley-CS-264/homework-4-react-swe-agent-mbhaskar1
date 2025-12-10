@@ -3,6 +3,7 @@ import concurrent.futures
 import subprocess
 from pathlib import Path
 import os
+import traceback
 
 import typer
 from datasets import load_dataset
@@ -50,10 +51,19 @@ def process_instance(
         agent = ReactAgent("swe-agent", parser, llm)
         
         # Add environment functions to the agent
+        # Core bash command tool (required)
         agent.add_functions([env.run_bash_cmd])
-        
-        # TODO(student): Add more functions here if needed
-        # agent.add_functions([env.replace_in_file, env.show_file, ...])
+
+        # Custom tools for better SWE-bench performance
+        agent.add_functions([
+            env.show_file,        # View files with line numbers
+            env.replace_in_file,  # Precise code editing
+            env.search_code,      # Search for code patterns
+            env.find_files,       # Find files by name pattern
+            env.list_directory,   # List directory contents
+            env.create_file,      # Create new files
+            env.view_around_line, # View context around a specific line
+        ])
         
         # Run the agent
         output = agent.run(task, max_steps) 
@@ -63,7 +73,10 @@ def process_instance(
         
     except Exception as e:
         print(f"Error processing instance {instance_id}: {e}")
-        
+        print(traceback.format_exc())
+        # Store error in result for debugging
+        result = f"Error: {type(e).__name__}: {str(e)}"
+
     finally:
         # Save the trajectory and update the predictions file
         save_traj(

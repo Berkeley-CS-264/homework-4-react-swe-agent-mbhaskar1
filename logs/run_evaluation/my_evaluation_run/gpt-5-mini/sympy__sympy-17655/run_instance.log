@@ -1,0 +1,102 @@
+2025-12-10 07:20:02,387 - INFO - Creating container for sympy__sympy-17655...
+2025-12-10 07:20:02,478 - INFO - Container for sympy__sympy-17655 created: 20e2f0fba6136c5846c23c5eda1c595b52f0a8bbad43bdc4f649956a3d0867a6
+2025-12-10 07:20:02,712 - INFO - Container for sympy__sympy-17655 started: 20e2f0fba6136c5846c23c5eda1c595b52f0a8bbad43bdc4f649956a3d0867a6
+2025-12-10 07:20:02,717 - INFO - Intermediate patch for sympy__sympy-17655 written to logs/run_evaluation/my_evaluation_run/gpt-5-mini/sympy__sympy-17655/patch.diff, now applying to container...
+2025-12-10 07:20:03,052 - INFO - >>>>> Applied Patch:
+Checking patch sympy/geometry/point.py...
+/tmp/patch.diff:40: new blank line at EOF.
++
+Applied patch sympy/geometry/point.py cleanly.
+warning: 1 line adds whitespace errors.
+
+2025-12-10 07:20:04,143 - INFO - Git diff before:
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 7c978c47be..e087bd6af6 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -21,7 +21,7 @@
+ 
+ import warnings
+ 
+-from sympy.core import S, sympify, Expr
++from sympy.core import S, sympify, Expr, Mul
+ from sympy.core.compatibility import is_sequence
+ from sympy.core.containers import Tuple
+ from sympy.simplify import nsimplify, simplify
+@@ -213,6 +213,21 @@ def __add__(self, other):
+         sympy.geometry.point.Point.translate
+ 
+         """
++        # Handle expressions like scalar*Point (e.g., 2*Point(1, 1))
++        # by extracting the Point factor and converting the Mul into a
++        # proper Point instance before proceeding.
++        if isinstance(other, Mul):
++            for factor in other.args:
++                if isinstance(factor, Point):
++                    scalar = other / factor
++                    try:
++                        other = factor * scalar
++                    except Exception:
++                        # If something unexpected happens, fall back to
++                        # the original behavior below which will raise.
++                        pass
++                    break
++
+         try:
+             s, o = Point._normalize_dimension(self, Point(other, evaluate=False))
+         except TypeError:
+@@ -1349,3 +1364,4 @@ def z(self):
+         1
+         """
+         return self.args[2]
++
+2025-12-10 07:20:04,150 - INFO - Eval script for sympy__sympy-17655 written to logs/run_evaluation/my_evaluation_run/gpt-5-mini/sympy__sympy-17655/eval.sh; copying to container...
+2025-12-10 07:20:19,030 - INFO - Test runtime: 14.53 seconds
+2025-12-10 07:20:19,034 - INFO - Test output for sympy__sympy-17655 written to logs/run_evaluation/my_evaluation_run/gpt-5-mini/sympy__sympy-17655/test_output.txt
+2025-12-10 07:20:19,224 - INFO - Git diff after:
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 7c978c47be..e087bd6af6 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -21,7 +21,7 @@
+ 
+ import warnings
+ 
+-from sympy.core import S, sympify, Expr
++from sympy.core import S, sympify, Expr, Mul
+ from sympy.core.compatibility import is_sequence
+ from sympy.core.containers import Tuple
+ from sympy.simplify import nsimplify, simplify
+@@ -213,6 +213,21 @@ def __add__(self, other):
+         sympy.geometry.point.Point.translate
+ 
+         """
++        # Handle expressions like scalar*Point (e.g., 2*Point(1, 1))
++        # by extracting the Point factor and converting the Mul into a
++        # proper Point instance before proceeding.
++        if isinstance(other, Mul):
++            for factor in other.args:
++                if isinstance(factor, Point):
++                    scalar = other / factor
++                    try:
++                        other = factor * scalar
++                    except Exception:
++                        # If something unexpected happens, fall back to
++                        # the original behavior below which will raise.
++                        pass
++                    break
++
+         try:
+             s, o = Point._normalize_dimension(self, Point(other, evaluate=False))
+         except TypeError:
+@@ -1349,3 +1364,4 @@ def z(self):
+         1
+         """
+         return self.args[2]
++
+2025-12-10 07:20:19,226 - INFO - Grading answer for sympy__sympy-17655...
+2025-12-10 07:20:19,235 - INFO - report: {'sympy__sympy-17655': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_point', 'test_point3D']}, 'PASS_TO_PASS': {'success': ['test_Point2D', 'test_issue_9214', 'test_issue_11617', 'test_transform', 'test_concyclic_doctest_bug', 'test_arguments', 'test_unit', 'test_dot', 'test__normalize_dimension'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-17655: resolved: False
+2025-12-10 07:20:19,244 - INFO - Attempting to stop container sweb.eval.sympy__sympy-17655.my_evaluation_run...
+2025-12-10 07:20:34,555 - INFO - Attempting to remove container sweb.eval.sympy__sympy-17655.my_evaluation_run...
+2025-12-10 07:20:34,623 - INFO - Container sweb.eval.sympy__sympy-17655.my_evaluation_run removed.

@@ -1,0 +1,59 @@
+diff --git a/src/_pytest/nodes.py b/src/_pytest/nodes.py
+index 560548aea..46bd49c4c 100644
+--- a/src/_pytest/nodes.py
++++ b/src/_pytest/nodes.py
+@@ -282,6 +282,20 @@ class Node(metaclass=NodeMeta):
+         else:
+             self.own_markers.insert(0, marker_.mark)
+ 
++        # Invalidate cached skip/xfail evaluation results when markers change.
++        # These StoreKeys are defined in _pytest.skipping to cache evaluation
++        # results during setup/runtest. If a marker is added dynamically at
++        # runtime (e.g., in a fixture), we need to remove cached values so that
++        # the new marker is considered.
++        try:
++            from _pytest.skipping import skipped_by_mark_key, xfailed_key, unexpectedsuccess_key
++        except Exception:
++            # If skipping module isn't available for some reason, skip cache invalidation.
++            return
++        for key in (skipped_by_mark_key, xfailed_key, unexpectedsuccess_key):
++            if key in self._store:
++                del self._store[key]
++
+     def iter_markers(self, name: Optional[str] = None) -> Iterator[Mark]:
+         """
+         :param name: if given, filter the results by the name attribute
+diff --git a/src/_pytest/skipping.py b/src/_pytest/skipping.py
+index 335e10996..ad1d72d07 100644
+--- a/src/_pytest/skipping.py
++++ b/src/_pytest/skipping.py
+@@ -262,6 +262,12 @@ def pytest_runtest_makereport(item: Item, call: CallInfo[None]):
+     outcome = yield
+     rep = outcome.get_result()
+     xfailed = item._store.get(xfailed_key, None)
++    # If no cached evaluation is present (for example because a marker was added
++    # dynamically during the test run via request.node.add_marker), re-evaluate
++    # xfail marks now so the report can take them into account.
++    if xfailed is None:
++        xfailed = evaluate_xfail_marks(item)
++        item._store[xfailed_key] = xfailed
+     # unittest special case, see setting of unexpectedsuccess_key
+     if unexpectedsuccess_key in item._store and rep.when == "call":
+         reason = item._store[unexpectedsuccess_key]
+@@ -313,3 +319,4 @@ def pytest_report_teststatus(report: BaseReport) -> Optional[Tuple[str, str, str
+         elif report.passed:
+             return "xpassed", "X", "XPASS"
+     return None
++
+diff --git a/test_xfail_dynamic.py b/test_xfail_dynamic.py
+new file mode 100644
+index 000000000..71d3ed4e5
+--- /dev/null
++++ b/test_xfail_dynamic.py
+@@ -0,0 +1,6 @@
++import pytest
++
++def test_xfail_test(request):
++    mark = pytest.mark.xfail(reason="xfail")
++    request.node.add_marker(mark)
++    assert 0

@@ -1,0 +1,58 @@
+diff --git a/astropy/utils/misc.py b/astropy/utils/misc.py
+index de3fb01d1..3edbf40cd 100644
+--- a/astropy/utils/misc.py
++++ b/astropy/utils/misc.py
+@@ -528,14 +528,44 @@ class InheritDocstrings(type):
+                 not key.startswith('_'))
+ 
+         for key, val in dct.items():
+-            if (inspect.isfunction(val) and
+-                is_public_member(key) and
+-                val.__doc__ is None):
++            # Only consider public members
++            if not is_public_member(key):
++                continue
++            # If docstring is already set, skip
++            if getattr(val, '__doc__', None) is not None:
++                continue
++            # Handle plain functions (methods)
++            if inspect.isfunction(val):
+                 for base in cls.__mro__[1:]:
+                     super_method = getattr(base, key, None)
+                     if super_method is not None:
+-                        val.__doc__ = super_method.__doc__
++                        val.__doc__ = getattr(super_method, '__doc__', None)
+                         break
++            # Handle properties (and subclasses of property, e.g., classproperty)
++            elif isinstance(val, property):
++                for base in cls.__mro__[1:]:
++                    super_attr = getattr(base, key, None)
++                    if super_attr is not None:
++                        # Prefer the attribute's __doc__, but fall back to fget.__doc__
++                        doc = getattr(super_attr, '__doc__', None)
++                        if doc is None and isinstance(super_attr, property):
++                            fget = getattr(super_attr, 'fget', None)
++                            if fget is not None:
++                                doc = getattr(fget, '__doc__', None)
++                        if doc is not None:
++                            # Try to set the docstring on the property object
++                            try:
++                                val.__doc__ = doc
++                            except Exception:
++                                pass
++                            # Also try to set it on the underlying fget if available
++                            try:
++                                fget = getattr(val, 'fget', None)
++                                if fget is not None:
++                                    fget.__doc__ = doc
++                            except Exception:
++                                pass
++                            break
+ 
+         super().__init__(name, bases, dct)
+ 
+@@ -1127,3 +1157,4 @@ def dtype_bytes_or_chars(dtype):
+     match = re.search(r'(\d+)$', dtype.str)
+     out = int(match.group(1)) if match else None
+     return out
++

@@ -1,0 +1,40 @@
+diff --git a/django/contrib/staticfiles/storage.py b/django/contrib/staticfiles/storage.py
+index 494890cc23..4d9569127a 100644
+--- a/django/contrib/staticfiles/storage.py
++++ b/django/contrib/staticfiles/storage.py
+@@ -226,17 +226,28 @@ class HashedFilesMixin:
+             path for path in paths
+             if matches_patterns(path, self._patterns)
+         ]
++
++        # Track which original names we've yielded back to the caller so we
++        # don't yield the same original filename multiple times across the
++        # multiple post-process passes. Exceptions are always yielded so errors
++        # are not suppressed.
++        yielded = set()
++
+         # Do a single pass first. Post-process all files once, then repeat for
+         # adjustable files.
+         for name, hashed_name, processed, _ in self._post_process(paths, adjustable_paths, hashed_files):
+-            yield name, hashed_name, processed
++            if isinstance(processed, Exception) or name not in yielded:
++                yield name, hashed_name, processed
++                yielded.add(name)
+ 
+         paths = {path: paths[path] for path in adjustable_paths}
+ 
+         for i in range(self.max_post_process_passes):
+             substitutions = False
+             for name, hashed_name, processed, subst in self._post_process(paths, adjustable_paths, hashed_files):
+-                yield name, hashed_name, processed
++                if isinstance(processed, Exception) or name not in yielded:
++                    yield name, hashed_name, processed
++                    yielded.add(name)
+                 substitutions = substitutions or subst
+ 
+             if not substitutions:
+@@ -439,3 +450,4 @@ class ConfiguredStorage(LazyObject):
+ 
+ 
+ staticfiles_storage = ConfiguredStorage()
++

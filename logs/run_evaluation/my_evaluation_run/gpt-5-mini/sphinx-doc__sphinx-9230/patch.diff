@@ -1,0 +1,31 @@
+diff --git a/sphinx/ext/napoleon/docstring.py b/sphinx/ext/napoleon/docstring.py
+index d8cb75a5f..c748c7011 100644
+--- a/sphinx/ext/napoleon/docstring.py
++++ b/sphinx/ext/napoleon/docstring.py
+@@ -264,10 +264,20 @@ class GoogleDocstring:
+         _name, _type, _desc = before, '', after
+ 
+         if parse_type:
++            # First, try matching "name(type)" (Google style, e.g. "arg(str)")
+             match = _google_typed_arg_regex.match(before)
+-            if match:
++            # Ensure the matched parentheses are at the end of the "before" string.
++            # This avoids misinterpreting type-first signatures like
++            # "dict(str, str) opc_meta" as name="dict" and type="str, str".
++            if match and match.end() == len(before):
+                 _name = match.group(1).strip()
+                 _type = match.group(2)
++            else:
++                # Try matching "type name" (reST style, e.g. ":param dict(str, str) name:")
++                m2 = re.match(r'^\s*(\S+\(.*\)|\S+)\s+(.+)$', before)
++                if m2:
++                    _type = m2.group(1).strip()
++                    _name = m2.group(2).strip()
+ 
+         _name = self._escape_args_and_kwargs(_name)
+ 
+@@ -1336,3 +1346,4 @@ class NumpyDocstring(GoogleDocstring):
+         lines += ['']
+ 
+         return self._format_admonition('seealso', lines)
++
