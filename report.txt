@@ -43,25 +43,44 @@ Unresolved Instance IDs:
 2. OBSERVATIONS
 ================================================================================
 
-The agent achieved a 40% success rate on the SWE-bench subset. Several patterns
-emerged from analyzing the results:
+The agent achieved a 40% success rate on the SWE-bench subset. Analysis of the
+report.json files for each instance revealed the following patterns:
 
-Successes:
-- The agent performed well on issues with clear, localized bug fixes where the
-  problem could be identified through code search and addressed with minimal
-  changes.
-- Django issues had a 50% success rate (5/10), suggesting the agent handles
-  well-structured codebases effectively.
-- Issues with clear error messages or failing test descriptions helped the agent
-  locate and understand the problem.
+Success Rates by Project:
+- Django: 5/10 (50%) - django__django-11179, 13810, 14053, 16662, 7530
+- Sphinx: 0/3 (0%) - All three instances failed
+- Sympy: 1/2 (50%) - sympy__sympy-24213 resolved
+- Requests: 0/2 (0%) - Both instances failed
+- Others: astropy (1/1), scikit-learn (1/1), pytest (0/1)
 
-Failures:
-- Some failures were due to "regressions" - the agent fixed the target issue but
-  introduced changes that broke existing tests.
-- Complex multi-file changes or issues requiring deep understanding of library
-  internals proved difficult.
-- Issues in less structured codebases (sphinx, sympy) had lower success rates.
-- The agent sometimes made overly broad fixes instead of minimal, targeted changes.
+Primary Failure Patterns (based on test_status in report.json):
+
+1. INCOMPLETE FIXES (most common):
+   Many failures show partial success in FAIL_TO_PASS - the agent fixed some
+   target tests but not all. Examples:
+   - django__django-10973: Fixed 4/5 target tests
+   - django__django-12406: Fixed 1/3 target tests
+   - pytest-dev__pytest-7490: Fixed 2/3 target tests
+
+2. REGRESSIONS (2 instances):
+   The psf__requests instances show PASS_TO_PASS failures (tests that passed in original code
+   now fail due to the agent's changes):
+   - psf__requests-1921: 23 regressions in PASS_TO_PASS.failure
+   - psf__requests-2931: 1 regression in PASS_TO_PASS.failure
+
+3. NO PROGRESS (some instances):
+   Some instances show 0 success in FAIL_TO_PASS, meaning the agent's changes
+   did not fix any of the target tests:
+   - django__django-14011: 0/17 target tests fixed
+   - sphinx-doc__sphinx-7590: 0/1 target test fixed
+   - sphinx-doc__sphinx-9230: 0/1 target test fixed
+
+Observations:
+- The agent performed best on Django issues, likely due to Django's well-
+  documented codebase and clear code patterns.
+- Sphinx issues had 0% success rate, suggesting difficulty with documentation
+  tooling codebases or complex template/parsing logic.
+- The requests library failures involved significant regressions.
 
 
 3. CUSTOM TOOLS CREATED
